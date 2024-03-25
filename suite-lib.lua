@@ -25,6 +25,7 @@ function perf_warm(a)
         return
     end
 
+    --[[ I really don't understand why waiting for this, as it adds time complexity
     local numbers = {}
     if shuffle then
         for i=1,count do
@@ -36,12 +37,16 @@ function perf_warm(a)
             numbers[i], numbers[j] = numbers[j], numbers[i]
         end
     end
+    ]]--
 
     for i=1,count do
         local num = i
-        if shuffle then
+	--[[ same here
+	if shuffle then
             num = numbers[i]
         end
+	--]]
+	-- size = math.random(10) * 1000 -- From 1 to 10KB
         local req = mcs.ms(prefix, num, size, "q")
         mcs.client_write(c, req)
         written = written + size
