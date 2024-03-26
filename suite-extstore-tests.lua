@@ -16,8 +16,11 @@ local base_extarg = "-o ext_threads=8,ext_wbuf_size=32"
 -- TODO: need to fix the algo more and remove freeratio adjustment.
 local base_arg = "-m 5000 -o no_hashexpand,hashpower=26,slab_automove_freeratio=0.02 " .. base_extarg
 
-local basic_fill_size = 28 * GByte
-local basic_item_size = 15 * KByte
+local basic_fill_size = 120 * GByte
+local basic_item_size = 1 * KByte
+-- For quick tests, uncomment these.
+--local basic_fill_size = 1 * GByte
+--local basic_item_size = 1 * KByte
 local basic_item_count = math.floor(basic_fill_size / basic_item_size)
 
 -- the actual amounts are fudged higher because items take residence in both
@@ -38,10 +41,11 @@ local tests = {
         s = base_arg .. " -o ext_path=/extstore/extstore:25g",
         w = { { limit = basic_item_count, vsize = basic_item_size, prefix = "extstore", shuffle = true, flush_after = warm_write_rate, sleep = 100 } },
 
-        a = { cli = 40, rate = 40000, prefix = "extstore", limit = basic_item_count, vsize = basic_item_size },
+        a = { cli = 50, rate = 2500000, pipes = 96, prefix = "extstore", limit = basic_item_count, vsize = basic_item_size },
         t = function(thr, wthr, o)
-            mcs.add(thr, { func = "perfrun_metaget", clients = o.cli, rate_limit = o.rate * 0.9, init = true }, o)
-            mcs.add(thr, { func = "perfrun_metaset", clients = o.cli, rate_limit = o.rate * 0.1, init = true }, o)
+	    mcs.add(thr, { func = "perfrun_metaget_pipe", clients = o.cli, rate_limit = o.rate, init = true }, o)
+            -- mcs.add(thr, { func = "perfrun_metaget", clients = o.cli, rate_limit = o.rate, init = true }, o)
+            -- mcs.add(thr, { func = "perfrun_metaset", clients = o.cli, rate_limit = o.rate * 0.1, init = true }, o)
         end,
     },
     -- overwrite the data but total disk usage is close to 50%
@@ -168,109 +172,17 @@ local tests = {
             })
         end,
     },
-    -- 90% reload, but we have the OLD bucket and plenty of extra space there
-    reloadold = {
-        s = base_arg .. " -o ext_path=/extstore/extstore:25g,ext_path=/extstore/extold:25g:old",
-        w = { {
-            limit = reload90_item_count,
-            vsize = basic_item_size,
-            prefix = "extstore",
-            shuffle = true,
-            flush_after = warm_write_rate,
-            sleep = 100,
-        } },
-        a = {
-            cli = 25,
-            rate = 25000,
-            prefix = "extstore",
-            limit = reload90_item_count,
-            vsize = basic_item_size,
-        },
-        t = function(thr, wthr, o)
-            mcs.add(thr, { func = "perfrun_metaget", clients = o.cli, rate_limit = o.rate, init = true }, o)
-            mcs.add_custom(wthr, { func = "perf_warm" }, {
-                limit = reload90_item_count,
-                vsize = basic_item_size,
-                prefix = "extstore_old",
-                shuffle = true,
-                -- half the speed + smaller chunks.
-                flush_after = math.floor(warm_write_rate / 4),
-                sleep = 50,
-            })
-        end,
-    },
-    evictionold = {
-        s = base_arg .. " -o ext_path=/extstore/extstore:15g,ext_path=/extstore/extold:15g:old",
-        w = { {
-            limit = reload90_item_count,
-            vsize = basic_item_size,
-            prefix = "extstore",
-            shuffle = true,
-            flush_after = warm_write_rate,
-            sleep = 100,
-        } },
-        a = {
-            cli = 25,
-            rate = 25000,
-            prefix = "extstore",
-            limit = reload90_item_count,
-            vsize = basic_item_size,
-        },
-        t = function(thr, wthr, o)
-            mcs.add(thr, { func = "perfrun_metaget", clients = o.cli, rate_limit = o.rate, init = true }, o)
-            mcs.add_custom(wthr, { func = "perf_warm" }, {
-                limit = reload90_item_count,
-                vsize = basic_item_size,
-                prefix = "extstore_old",
-                shuffle = true,
-                -- half the speed + smaller chunks.
-                flush_after = math.floor(warm_write_rate / 4),
-                sleep = 50,
-            })
-        end,
-    },
-    reloadcold = {
-        s = base_arg .. " -o ext_path=/extstore/extstore:25g,ext_path=/extstore/extcold:25g:coldcompact",
-        w = { {
-            limit = reload90_item_count,
-            vsize = basic_item_size,
-            prefix = "extstore",
-            shuffle = true,
-            flush_after = warm_write_rate,
-            sleep = 100,
-        } },
-        a = {
-            cli = 25,
-            rate = 25000,
-            prefix = "extstore",
-            limit = reload90_item_count,
-            vsize = basic_item_size,
-        },
-        t = function(thr, wthr, o)
-            mcs.add(thr, { func = "perfrun_metaget", clients = o.cli, rate_limit = o.rate, init = true }, o)
-            mcs.add_custom(wthr, { func = "perf_warm" }, {
-                limit = reload90_item_count,
-                vsize = basic_item_size,
-                prefix = "extstore_old",
-                shuffle = true,
-                -- half the speed + smaller chunks.
-                flush_after = math.floor(warm_write_rate / 4),
-                sleep = 50,
-            })
-        end,
-    },
 
 }
 
 local test_list = {
     "basic",
+--[[ Ignore these for now 
     "reload50",
     "reload75",
     "reload90",
     "eviction",
-    "reloadold",
-    "evictionold",
-    "reloadcold",
+--]]
 }
 
 return {
