@@ -16,7 +16,7 @@ local base_extarg = "-o ext_threads=8,ext_wbuf_size=32"
 -- TODO: need to fix the algo more and remove freeratio adjustment.
 local base_arg = "-m 5000 -o no_hashexpand,hashpower=26,slab_automove_freeratio=0.02 " .. base_extarg
 
-local basic_fill_size = 120 * GByte
+local basic_fill_size = 110 * GByte
 local basic_item_size = 1 * KByte
 -- For quick tests, uncomment these.
 --local basic_fill_size = 1 * GByte
