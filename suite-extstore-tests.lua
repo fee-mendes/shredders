@@ -41,7 +41,7 @@ local tests = {
         s = base_arg .. " -o ext_path=/extstore/extstore:25g",
         w = { { limit = basic_item_count, vsize = basic_item_size, prefix = "extstore", shuffle = true, flush_after = warm_write_rate, sleep = 100 } },
 
-        a = { cli = 40, rate = 2500000, pipes = 64, prefix = "extstore", limit = basic_item_count, vsize = basic_item_size },
+        a = { cli = 40, rate = 2500000, pipes = 16, prefix = "extstore", limit = basic_item_count, vsize = basic_item_size },
         t = function(thr, wthr, o)
 	    mcs.add(thr, { func = "perfrun_metaget_pipe", clients = o.cli, rate_limit = o.rate, init = true }, o)
             -- mcs.add(thr, { func = "perfrun_metaget", clients = o.cli, rate_limit = o.rate, init = true }, o)
