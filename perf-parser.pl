@@ -13,34 +13,42 @@ my %stats_count = ();
 my %timers = ();
 my $main_test = '';
 my $next_test = '';
-# FIXME: remove this once the main data is fixed.
-my $skip_timer = 0;
 
 my @tests = ();
 
 my $cur_test = '';
 my $cur_st = '';
 while (my $line = <$fh>) {
-    if ($line =~ m/^\+\+\+ test (\S+) \+\+\+/) {
+    # We parse one test at a time.
+    # Retrieve and initialize all values we need as soon as we find
+    # it started.
+    #
+    # If FULLSTATS, we don't want it to skew results
+    # cmd_get / cmd_set, for example
+    if ($line =~ m/^.*FULLSTATS/) {
+	last;
+    }
+
+    if ($line =~ m/^.*START \| (.*)/) {
         $cur_test = {name => $1, st => []};
         push(@tests, $cur_test);
-    } elsif ($line =~ m/^\+\+\+\s+(.*)\s+\+\+\+$/) {
         $cur_st = {name => $1, stats => {}, statsc => {}, timers => {}};
         push(@{$cur_test->{st}}, $cur_st);
-        $skip_timer = 1;
-    } elsif ($line =~ m/^stat:\s+(\S+)\s+:\s+(\d+)/) {
+    # We are interested in cmd_[get|set] only.
+    } elsif ($line =~ m/^.*\| STAT \| (cmd_\S+) \| (\d+)/) {
         my $s = $1;
         my $n = $2;
-        $cur_st->{stats}->{$s} += $n;
-        $cur_st->{statsc}->{$s}++;
-    } elsif ($line =~ m/^=== timer (\S+) ===/) {
+
+	$cur_st->{stats}->{$s} += $n;
+	$cur_st->{statsc}->{$s}++;
+    } 
+}    
+# Reset handle, and read it again. But now only parse TIMER entries
+seek($fh, 0, 0);
+
+while (my $line = <$fh>) {
+    if ($line =~ m/^.* \| TIMER \| (\S+)/) {
         parse_timers($1, $cur_st->{timers}, $fh);
-        if ($skip_timer) {
-            # FIXME: REMOVE THIS ONCE FIXED UPSTREAM.
-            $cur_st->{timers} = {};
-            %timers = ();
-            $skip_timer = 0;
-        }
     }
 }
 
@@ -64,7 +72,9 @@ sub display_test {
     my $st = shift;
     print("--- subtest ", $st->{name}, " ---\n");
     for my $key (sort keys %{$st->{stats}}) {
-        print("stat: $key : ", int($st->{stats}->{$key} / $st->{statsc}->{$key}), "\n");
+        print("stat: $key : \n");
+	print(" Total Ops: ", $st->{stats}->{$key}, "\n");
+	print(" Rate: ", int($st->{stats}->{$key} / $st->{statsc}->{$key}), "/s \n");
     }
     for my $cmd (sort keys %{$st->{timers}}) {
         my $s = $st->{timers}->{$cmd};
@@ -107,18 +117,18 @@ sub parse_timers {
     my $s = $h->{$n};
 
     while (my $line = <$fh>) {
-        if ($line =~ m/=== end ===/) {
+        if ($line =~ m/.*\| FULLSTATS$/) {
             last;
         }
-        if ($line =~ m/(\d+)us\s+(\d+)/) {
+        if ($line =~ m/\| TIME \| (\d+)us \| (\d+)/) {
             my $b = $1;
             my $cnt = $2;
             if ($b eq "1") { $s->{us}->[0] += $cnt }
             if ($b eq "10") { $s->{us}->[1] += $cnt }
             if ($b eq "100") { $s->{us}->[2] += $cnt }
-        } elsif ($line =~ m/(\d+)ms\s+(\d+)/) {
+        } elsif ($line =~ m/\| TIME \| (\d+)ms \| (\d+)/) {
             $s->{ms}->[$1] += $2;
-        } elsif ($line =~ m/^100ms\+:\s+(\d+)/) {
+        } elsif ($line =~ m/\| TIME \| 100ms\+: \| (\d+)/) {
             $s->{oob} += $1;
         }
     }
