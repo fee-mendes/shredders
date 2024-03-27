@@ -7,7 +7,7 @@ local gbit_per_sec <const> = 124 * MByte
 -- arbitrary "n gigabits per second" warm rate to avoid eviction issues with
 -- extstore.
 -- requires that we also set sleep rate to 100ms
-local warm_write_rate = (gbit_per_sec * 4) / 10
+local warm_write_rate = (gbit_per_sec * 12) / 10
 
 local base_extarg = "-o ext_threads=8,ext_wbuf_size=32"
 -- presize the hash table for 2^28 * 1.5 items of "ideal" performance
@@ -16,7 +16,7 @@ local base_extarg = "-o ext_threads=8,ext_wbuf_size=32"
 -- TODO: need to fix the algo more and remove freeratio adjustment.
 local base_arg = "-m 5000 -o no_hashexpand,hashpower=26,slab_automove_freeratio=0.02 " .. base_extarg
 
-local basic_fill_size = 110 * GByte
+local basic_fill_size = 100 * GByte
 local basic_item_size = 1 * KByte
 -- For quick tests, uncomment these.
 --local basic_fill_size = 1 * GByte
@@ -41,7 +41,7 @@ local tests = {
         s = base_arg .. " -o ext_path=/extstore/extstore:25g",
         w = { { limit = basic_item_count, vsize = basic_item_size, prefix = "extstore", shuffle = true, flush_after = warm_write_rate, sleep = 100 } },
 
-        a = { cli = 50, rate = 2500000, pipes = 96, prefix = "extstore", limit = basic_item_count, vsize = basic_item_size },
+        a = { cli = 40, rate = 2500000, pipes = 64, prefix = "extstore", limit = basic_item_count, vsize = basic_item_size },
         t = function(thr, wthr, o)
 	    mcs.add(thr, { func = "perfrun_metaget_pipe", clients = o.cli, rate_limit = o.rate, init = true }, o)
             -- mcs.add(thr, { func = "perfrun_metaget", clients = o.cli, rate_limit = o.rate, init = true }, o)

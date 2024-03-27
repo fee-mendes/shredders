@@ -39,7 +39,7 @@ end
 
 function config(a)
     local o = {
-        threads = 12,
+        threads = 64,
         time = 1800,
         keep = false, -- whether or not to leave mc running post-test.
     }
