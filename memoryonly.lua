@@ -2,7 +2,7 @@ require("suite-util")
 require("suite-lib")
 require("suite-performance-lib")
 local test_p = require("suite-performance-tests")
-local test_ext = require("suite-extstore-tests")
+local test_mem = require("suite-memory-tests")
 
 function help()
     local msg =[[
@@ -100,7 +100,7 @@ function config(a)
         print("[init] overriding test suite: " .. a["suite"])
         _G["test_" .. a["suite"]](o)
     else
-        test_extstore(o)
+        test_memory(o)
     end
 end
 
@@ -109,11 +109,11 @@ end
 --
 
 --
--- extstore test runner
+-- in-memory test runner
 --
 
 -- most code inherited/modified from the performance runner.
-function test_ext_warm(thread, client)
+function test_mem_warm(thread, client)
     plog("LOG", "INFO", "warming")
     local c = client
     if c == nil or #c == 0 then
@@ -127,10 +127,10 @@ function test_ext_warm(thread, client)
     plog("LOG", "INFO", "warming end")
 end
 
--- for extstore tests we pass the warm thread back into the main workload
+-- for memory tests we pass the warm thread back into the main workload
 -- so we can make single threaded "writer" threads to emulate certain load
 -- patterns and to allow repeatable data loading in general.
-function test_ext_run_test(o, test)
+function test_mem_run_test(o, test)
     local testthr = o.testthr
     local statthr = o.statsthr
     local warmthr = o.warmthr
@@ -141,7 +141,7 @@ function test_ext_run_test(o, test)
         table.insert(allthr, t)
     end
 
-    local stats_arg = { stats = { "cmd_get", "cmd_set"}, track = { "evictions" } } --, "extstore_bytes_read", "extstore_objects_read", "extstore_objects_written" }, track = { "extstore_bytes_written", "extstore_bytes_fragmented", "extstore_bytes_used", "extstore_io_queue", "extstore_page_allocs", "extstore_page_reclaims", "extstore_page_evictions", "extstore_pages_free", "evictions" } }
+    local stats_arg = { stats = { "cmd_get", "cmd_set"}, track = { "evictions" } } 
 
     -- copy the argument table since we modify it at runtime.
     -- want to do this better but it does complicate the code a lot...
@@ -162,17 +162,17 @@ function test_ext_run_test(o, test)
     mcs.shredder({statthr})
 end
 
-function test_extstore(o)
+function test_memory(o)
     if o.extset then
-        test_ext.testset = o.extset
+        test_mem.testset = o.extset
     end
 
-    for _, tconfig in ipairs(test_ext.testset) do
-        local t = test_ext.tests[tconfig]
+    for _, tconfig in ipairs(test_mem.testset) do
+        local t = test_mem.tests[tconfig]
         -- run test
         plog("START", tconfig)
-        test_ext_warm(o.warmthr, t.w)
-        test_ext_run_test(o, t)
+        test_mem_warm(o.warmthr, t.w)
+        test_mem_run_test(o, t)
         plog("END")
     end
 end
