@@ -37,10 +37,20 @@ local tests = {
 	    mcs.add(thr, { func = "perfrun_metaget_pipe", clients = o.cli, rate_limit = o.rate, init = true }, o)
         end,
     },
+    nopipe = {
+	s = base_arg,
+	w = { { limit = basic_item_count, vsize = basic_item_size, prefix = "disk", shuffle = true, flush_after = warm_write_rate, sleep = 100 } },
+
+	a = { cli = 50, rate = 150000, prefix = "disk", limit = basic_item_count, vsize = basic_item_size },
+	t = function(thr, wthr, o)
+            mcs.add(thr, { func = "perfrun_metaget", clients = o.cli, rate_limit = o.rate, init = true }, o)
+        end,
+    },
 }
 
 local test_list = {
     "basic",
+    "nopipe",
 }
 
 return {

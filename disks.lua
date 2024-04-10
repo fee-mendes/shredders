@@ -39,8 +39,8 @@ end
 
 function config(a)
     local o = {
-        threads = 8,
-        time = 1800,
+        threads = 4,
+        time = 600,
         keep = false, -- whether or not to leave mc running post-test.
     }
     if a["threads"] ~= nil then
