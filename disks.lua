@@ -39,7 +39,7 @@ end
 
 function config(a)
     local o = {
-        threads = 4,
+        threads = 8,
         time = 600,
         keep = false, -- whether or not to leave mc running post-test.
     }
@@ -168,7 +168,7 @@ function test_disk(o)
     end
 
     -- Do not warmup more than once
-    local warm = false
+    local warm = true
     for _, tconfig in ipairs(test_d.testset) do
         local t = test_d.tests[tconfig]
         -- run test
