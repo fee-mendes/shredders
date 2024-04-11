@@ -1,0 +1,36 @@
+keyspace: ks
+
+keyspace_definition: |
+  CREATE KEYSPACE ks WITH replication = {'class': 'NetworkTopologyStrategy', 'replication_factor': 1};
+
+table: standard1
+
+table_definition: |
+  CREATE TABLE standard1 (
+    key blob,
+    c blob,
+    v blob,
+    PRIMARY KEY(key,c)
+  ) WITH bloom_filter_fp_chance = 0.01
+
+columnspec:
+  - name: key
+    size: fixed(12) 
+    population: seq(1..110M) # Sequentially populate 110M unique keys
+  - name: c
+    cluster: fixed(16)
+    size: fixed(16) 
+  - name: v
+    size: fixed(984)
+
+insert:
+  # we only update a single partition in any given insert
+  partitions: fixed(1)
+  # select: fixed(1)
+  batchtype: UNLOGGED             # Single partition unlogged batches are essentially noops
+
+queries:
+   read:
+      cql: select key,v from standard1 where key = ?
+      fields: samerow
+
