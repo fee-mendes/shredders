@@ -120,6 +120,11 @@ sub parse_timers {
         if ($line =~ m/.*\| FULLSTATS$/) {
             last;
         }
+	# This condition is important to ensure we parse mixed tests,
+	# and add timers to their respective buckets
+        if ($line =~ m/.*\| ENDTIMER$/) {
+	    return;
+    	}
         if ($line =~ m/\| TIME \| (\d+)us \| (\d+)/) {
             my $b = $1;
             my $cnt = $2;
